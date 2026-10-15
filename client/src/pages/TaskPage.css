@@ -13,6 +13,24 @@
   border-radius: 8px;
   font-size: 20px;
 }
+ 
+.task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.task header h1  {
+  font-size: 28px;
+  font-weight: bold;
+  color: #142b4a;
+}
+
+.task-header p {
+  font-size: 16px;
+  color: #333436;
+}
 
 .submit-button,
 .task-card button {
@@ -31,7 +49,9 @@
   background: #142b4a;
   color: white;
   padding: 10px 16px;
-  border: none;
+  border: 2px solid #444547;
+  font-weight: 600;
+  min-width: 100px;
   border-radius: 8px;
   cursor: pointer;
 }

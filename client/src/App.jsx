@@ -1,20 +1,20 @@
-
-import { useState } from "react";
+import {useAuth} from "./Context/AuthContext";
 import "./App.css";
 import TaskPage from "./pages/TaskPage";
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  function handleLogin(event) {
-    event.preventDefault();
-    setIsLoggedIn(true);
-  }
+  const { isLoggedIn, handleLogin } = useAuth();
 
   if (isLoggedIn) {
-    return <TaskPage />;
-  }
+  return <TaskPage />;
+}
 
+function handleSubmit(event) {
+  event.preventDefault();
+  handleLogin();
+}
+  
   return (
     <main className="login-page">
       <section className="login-card">
@@ -28,7 +28,7 @@ function App() {
           Enter your details to continue.
         </p>
 
-        <form onSubmit={handleLogin}>
+        <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="email">Email address</label>
             <input

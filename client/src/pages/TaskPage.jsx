@@ -1,15 +1,13 @@
 import { useState } from "react";
 import "./TaskPage.css";
+import {useAuth} from "../Context/AuthContext";
 
 function TaskPage() {
   const [title, setTitle] = useState("");
   const [tasks, setTasks] = useState([]);
 
-  function logout(event) {
-    window.location.reload();
-    return <App />;
-  }
-  
+const { handleLogout } = useAuth();
+
   function addTask(event) {
     event.preventDefault();
 
@@ -45,13 +43,13 @@ function TaskPage() {
 
   return (
     <main className="task-page">
-      <header className="task-header">
+      <header className="task-header" >
         <div>
           <h1>TaskFlow</h1>
           <p>Organize your work, one task at a time.</p>
         </div>
 
-        <button className="logout-button" type="button" onClick={logout}>
+        <button className="logout-button" type="button" onClick={handleLogout}>
           Logout
         </button>
       </header>
