@@ -1,27 +1,48 @@
-import {createContext ,useContext , useState} from "react";
+
+import { createContext, useContext, useState } from "react";
 
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [isLoggedIn, setIsLoggedIn] = useState(
-  () => localStorage.getItem("isLoggedIn") === "true"
-);
+    () => localStorage.getItem("isLoggedIn") === "true"
+  );
 
-function handleLogin() {
-  localStorage.setItem("isLoggedIn", "true");
-  setIsLoggedIn(true);
-}
+  const [userName, setUserNameState] = useState(
+    () => localStorage.getItem("userName") || ""
+  );
 
-function handleLogout() {
+  function handleLogin() {
+    localStorage.setItem("isLoggedIn", "true");
+    setIsLoggedIn(true);
+  }
+
+  function handleLogout() {
   localStorage.removeItem("isLoggedIn");
+  localStorage.removeItem("userName");
+
   setIsLoggedIn(false);
+  setUserNameState("");
 }
-    return (
-        <AuthContext.Provider value={{ isLoggedIn, handleLogin, handleLogout }}
-        >
-            {children}
-        </AuthContext.Provider>
-    );
+
+  function setUserName(name) {
+    localStorage.setItem("userName", name);
+    setUserNameState(name);
+  }
+
+  return (
+    <AuthContext.Provider
+      value={{
+        isLoggedIn,
+        handleLogin,
+        handleLogout,
+        userName,
+        setUserName,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {

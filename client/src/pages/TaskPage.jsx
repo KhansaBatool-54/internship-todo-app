@@ -1,12 +1,27 @@
-import { useState } from "react";
+
+import { useEffect, useState } from "react";
 import "./TaskPage.css";
-import {useAuth} from "../Context/AuthContext";
+import { useAuth } from "../Context/AuthContext";
 
 function TaskPage() {
-  const [title, setTitle] = useState("");
-  const [tasks, setTasks] = useState([]);
+  const { handleLogout, userName } = useAuth();
 
-const { handleLogout } = useAuth();
+  const storageKey = `tasks_${userName.trim().toLowerCase() || "guest"}`;
+
+  const [title, setTitle] = useState("");
+
+  const [tasks, setTasks] = useState(() => {
+    try {
+      const savedTasks = localStorage.getItem(storageKey);
+      return savedTasks ? JSON.parse(savedTasks) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem(storageKey, JSON.stringify(tasks));
+  }, [tasks, storageKey]);
 
   function addTask(event) {
     event.preventDefault();
@@ -19,13 +34,13 @@ const { handleLogout } = useAuth();
       status: "todo",
     };
 
-    setTasks([...tasks, newTask]);
+    setTasks((previousTasks) => [...previousTasks, newTask]);
     setTitle("");
   }
 
   function markAsDone(id) {
-    setTasks(
-      tasks.map((task) =>
+    setTasks((previousTasks) =>
+      previousTasks.map((task) =>
         task.id === id
           ? { ...task, status: "done" }
           : task
@@ -33,23 +48,23 @@ const { handleLogout } = useAuth();
     );
   }
 
-  const todoTasks = tasks.filter(
-    (task) => task.status === "todo"
-  );
-
-  const doneTasks = tasks.filter(
-    (task) => task.status === "done"
-  );
+  const todoTasks = tasks.filter((task) => task.status === "todo");
+  const doneTasks = tasks.filter((task) => task.status === "done");
 
   return (
     <main className="task-page">
-      <header className="task-header" >
+      <header className="task-header">
         <div>
           <h1>TaskFlow</h1>
           <p>Organize your work, one task at a time.</p>
+          <p>Welcome, {userName || "Guest"}!</p>
         </div>
 
-        <button className="logout-button" type="button" onClick={handleLogout}>
+        <button
+          className="logout-button"
+          type="button"
+          onClick={handleLogout}
+        >
           Logout
         </button>
       </header>
@@ -74,7 +89,6 @@ const { handleLogout } = useAuth();
           {todoTasks.map((task) => (
             <div className="task-card" key={task.id}>
               <span>{task.title}</span>
-
               <button
                 type="button"
                 onClick={() => markAsDone(task.id)}
@@ -84,9 +98,7 @@ const { handleLogout } = useAuth();
             </div>
           ))}
 
-          {todoTasks.length === 0 && (
-            <p>No pending tasks.</p>
-          )}
+          {todoTasks.length === 0 && <p>No pending tasks.</p>}
         </div>
 
         <div className="task-column">
@@ -99,9 +111,7 @@ const { handleLogout } = useAuth();
             </div>
           ))}
 
-          {doneTasks.length === 0 && (
-            <p>No completed tasks yet.</p>
-          )}
+          {doneTasks.length === 0 && <p>No completed tasks yet.</p>}
         </div>
       </section>
     </main>

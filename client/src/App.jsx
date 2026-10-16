@@ -1,20 +1,82 @@
-import {useAuth} from "./Context/AuthContext";
-import "./App.css";
+
+import { useState } from "react";
+import { useAuth } from "./Context/AuthContext";
 import TaskPage from "./pages/TaskPage";
+import "./App.css";
 
 function App() {
+  const { isLoggedIn, handleLogin, userName, setUserName } = useAuth();
 
-  const { isLoggedIn, handleLogin } = useAuth();
+  const [isPopupOpen, setIsPopupOpen] = useState(
+    () =>
+      localStorage.getItem("isLoggedIn") === "true" &&
+      !localStorage.getItem("userName")
+  );
+
+  const [nameInput, setNameInput] = useState(userName);
+
+  function handleSubmit(event) {
+  event.preventDefault();
+
+  setNameInput("");
+  handleLogin();
+
+  if (!userName.trim()) {
+    setIsPopupOpen(true);
+  }
+}
+
+ function handleSaveName(event) {
+  event.preventDefault();
+
+  const trimmedName = nameInput.trim();
+
+  if (!trimmedName) return;
+
+  setUserName(trimmedName);
+  setIsPopupOpen(false);
+}
+
+  if (isLoggedIn && isPopupOpen) {
+    return (
+      <main className="login-page">
+        <section className="login-card username-popup">
+          <h2>Welcome!</h2>
+          <p className="description">
+            Enter your username to continue.
+          </p>
+
+          <form onSubmit={handleSaveName}>
+            <div className="form-group">
+              <label htmlFor="userName">Username</label>
+              <input
+                id="userName"
+                type="text"
+                placeholder="Enter your username"
+                value={nameInput}
+                onChange={(event) => setNameInput(event.target.value)}
+                required
+              />
+            </div>
+
+            <button type="submit">Save</button>
+
+            <button
+              type="button"
+              onClick={() => setIsPopupOpen(false)}
+            >
+              Close
+            </button>
+          </form>
+        </section>
+      </main>
+    );
+  }
 
   if (isLoggedIn) {
-  return <TaskPage />;
-}
+    return <TaskPage />;
+  }
 
-function handleSubmit(event) {
-  event.preventDefault();
-  handleLogin();
-}
-  
   return (
     <main className="login-page">
       <section className="login-card">
