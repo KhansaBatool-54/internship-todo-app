@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "./Context/AuthContext";
 import TaskPage from "./pages/TaskPage";
 import "./App.css";
@@ -13,29 +13,38 @@ function App() {
       !localStorage.getItem("userName")
   );
 
-  const [nameInput, setNameInput] = useState(userName);
+  const nameRef = useRef(null);
+
+  // Focus the username input whenever the popup opens.
+  useEffect(() => {
+    if (isPopupOpen && nameRef.current) {
+      nameRef.current.focus();
+    }
+  }, [isPopupOpen]);
 
   function handleSubmit(event) {
-  event.preventDefault();
+    event.preventDefault();
 
-  setNameInput("");
-  handleLogin();
+    handleLogin();
 
-  if (!userName.trim()) {
-    setIsPopupOpen(true);
+    if (!userName.trim()) {
+      setIsPopupOpen(true);
+    }
   }
-}
 
- function handleSaveName(event) {
-  event.preventDefault();
+  function handleSaveName(event) {
+    event.preventDefault();
 
-  const trimmedName = nameInput.trim();
+    const trimmedName = nameRef.current?.value.trim() || "";
 
-  if (!trimmedName) return;
+    if (!trimmedName) {
+      nameRef.current?.focus();
+      return;
+    }
 
-  setUserName(trimmedName);
-  setIsPopupOpen(false);
-}
+    setUserName(trimmedName);
+    setIsPopupOpen(false);
+  }
 
   if (isLoggedIn && isPopupOpen) {
     return (
@@ -50,11 +59,12 @@ function App() {
             <div className="form-group">
               <label htmlFor="userName">Username</label>
               <input
+                ref={nameRef}
                 id="userName"
+                name="username"
                 type="text"
                 placeholder="Enter your username"
-                value={nameInput}
-                onChange={(event) => setNameInput(event.target.value)}
+                autoComplete="off"
                 required
               />
             </div>
@@ -81,11 +91,13 @@ function App() {
     <main className="login-page">
       <section className="login-card">
         <h1>TaskFlow</h1>
+
         <p className="subtitle">
           A simpler way to manage your day.
         </p>
 
         <h2>Welcome back</h2>
+
         <p className="description">
           Enter your details to continue.
         </p>
@@ -95,8 +107,10 @@ function App() {
             <label htmlFor="email">Email address</label>
             <input
               id="email"
+              name="email"
               type="email"
               placeholder="you@example.com"
+              autoComplete="off"
               required
             />
           </div>
@@ -105,8 +119,10 @@ function App() {
             <label htmlFor="password">Password</label>
             <input
               id="password"
+              name="password"
               type="password"
               placeholder="Enter your password"
+              autoComplete="new-password"
               required
             />
           </div>

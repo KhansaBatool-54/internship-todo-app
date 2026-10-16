@@ -18,12 +18,12 @@ export function AuthProvider({ children }) {
   }
 
   function handleLogout() {
-  localStorage.removeItem("isLoggedIn");
-  localStorage.removeItem("userName");
+    localStorage.removeItem("isLoggedIn");
+    localStorage.removeItem("userName");
 
-  setIsLoggedIn(false);
-  setUserNameState("");
-}
+    setIsLoggedIn(false);
+    setUserNameState("");
+  }
 
   function setUserName(name) {
     localStorage.setItem("userName", name);
