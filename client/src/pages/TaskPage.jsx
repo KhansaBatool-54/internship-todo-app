@@ -1,27 +1,44 @@
 
 import { useEffect, useState } from "react";
-import "./TaskPage.css";
 import { useAuth } from "../Context/AuthContext";
+import "./TaskPage.css";
 
 function TaskPage() {
-  const { handleLogout, userName } = useAuth();
+ const { handleLogout, userName, userEmail } = useAuth();
 
-  const storageKey = `tasks_${userName.trim().toLowerCase() || "guest"}`;
+const storageKey = userEmail
+  ? `tasks_${userEmail}`
+  : null;
 
   const [title, setTitle] = useState("");
-
-  const [tasks, setTasks] = useState(() => {
-    try {
-      const savedTasks = localStorage.getItem(storageKey);
-      return savedTasks ? JSON.parse(savedTasks) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [tasks, setTasks] = useState([]);
+  const [loadedKey, setLoadedKey] = useState(null);
 
   useEffect(() => {
+    if (!storageKey) {
+      setTasks([]);
+      setLoadedKey(null);
+      return;
+    }
+
+    try {
+      const savedTasks = localStorage.getItem(storageKey);
+      setTasks(savedTasks ? JSON.parse(savedTasks) : []);
+    } catch {
+      setTasks([]);
+    }
+
+    setLoadedKey(storageKey);
+  }, [storageKey]);
+
+  // Save tasks only after the correct user's tasks are loaded.
+  useEffect(() => {
+    if (!storageKey || loadedKey !== storageKey) {
+      return;
+    }
+
     localStorage.setItem(storageKey, JSON.stringify(tasks));
-  }, [tasks, storageKey]);
+  }, [tasks, storageKey, loadedKey]);
 
   function addTask(event) {
     event.preventDefault();
@@ -48,8 +65,13 @@ function TaskPage() {
     );
   }
 
-  const todoTasks = tasks.filter((task) => task.status === "todo");
-  const doneTasks = tasks.filter((task) => task.status === "done");
+  const todoTasks = tasks.filter(
+    (task) => task.status === "todo"
+  );
+
+  const doneTasks = tasks.filter(
+    (task) => task.status === "done"
+  );
 
   return (
     <main className="task-page">
@@ -75,6 +97,7 @@ function TaskPage() {
           placeholder="What needs to be done?"
           value={title}
           onChange={(event) => setTitle(event.target.value)}
+          required
         />
 
         <button type="submit" className="submit-button">
@@ -99,7 +122,9 @@ function TaskPage() {
             </div>
           ))}
 
-          {todoTasks.length === 0 && <p>No pending tasks.</p>}
+          {todoTasks.length === 0 && (
+            <p>No pending tasks.</p>
+          )}
         </div>
 
         <div className="task-column">
@@ -108,11 +133,15 @@ function TaskPage() {
           {doneTasks.map((task) => (
             <div className="task-card" key={task.id}>
               <span>{task.title}</span>
-              <span className="completed-label">Completed ✓</span>
+              <span className="completed-label">
+                Completed ✓
+              </span>
             </div>
           ))}
 
-          {doneTasks.length === 0 && <p>No completed tasks yet.</p>}
+          {doneTasks.length === 0 && (
+            <p>No completed tasks yet.</p>
+          )}
         </div>
       </section>
     </main>

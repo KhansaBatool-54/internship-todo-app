@@ -1,0 +1,79 @@
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+  box-sizing: border-box;
+
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.username-modal {
+  width: 100%;
+  max-width: 420px;
+  padding: 28px;
+  box-sizing: border-box;
+
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+
+.username-modal h2 {
+  margin-top: 0;
+  color: #172b4d;
+}
+
+.username-modal p {
+  color: #667085;
+}
+
+.username-modal form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.username-modal label {
+  font-weight: 500;
+}
+
+.username-modal input {
+  width: 100%;
+  padding: 12px;
+  box-sizing: border-box;
+
+  border: 1px solid #d0d5dd;
+  border-radius: 6px;
+  font: inherit;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.modal-actions button {
+  flex: 1;
+  padding: 11px 16px;
+
+  border: none;
+  border-radius: 6px;
+  background: #172b4d;
+  color: #ffffff;
+
+  font: inherit;
+  cursor: pointer;
+}
+
+.modal-actions button:last-child {
+  background: #e9edf3;
+  color: #172b4d;
+}
