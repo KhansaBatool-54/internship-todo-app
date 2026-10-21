@@ -1,9 +1,9 @@
-
 import { useEffect, useState } from "react";
 import { useAuth } from "./Context/AuthContext";
 import LoginPage from "./pages/LoginPage";
 import TaskPage from "./pages/TaskPage";
 import Popup from "./pages/Popup";
+import NotesPage from "./pages/NotesPage";
 
 function App() {
   const {
@@ -17,6 +17,8 @@ function App() {
     () =>
       localStorage.getItem("isLoggedIn") === "true" && !localStorage.getItem("userName")
   );
+
+  const [currentPage, setCurrentPage] = useState("tasks");
 
   useEffect(() => {
     if (isLoggedIn && !userName.trim()) {
@@ -36,8 +38,12 @@ function App() {
   }
 
   return (
-    <>
-      <TaskPage />
+    <main>
+      {currentPage === "tasks" ? (
+        <TaskPage onOpenNotes={() => setCurrentPage("notes")} />
+      ) : (
+        <NotesPage onBack={() => setCurrentPage("tasks")} />
+      )}
 
       {isPopupOpen && (
         <Popup
@@ -45,7 +51,7 @@ function App() {
           onClose={() => setIsPopupOpen(false)}
         />
       )}
-    </>
+    </main>
   );
 }
 

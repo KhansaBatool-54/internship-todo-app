@@ -18,12 +18,12 @@ export function AuthProvider({ children }) {
   );
 
 function handleLogin(email) {
-  const normalizedEmail = email.trim().toLowerCase();
+  const Email = email.trim().toLowerCase();
 
   localStorage.setItem("isLoggedIn", "true");
-  localStorage.setItem("userEmail", normalizedEmail);
+  localStorage.setItem("userEmail", Email);
 
-  setUserEmail(normalizedEmail);
+  setUserEmail(Email);
   setIsLoggedIn(true);
 }
 

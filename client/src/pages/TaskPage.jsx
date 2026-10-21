@@ -3,8 +3,8 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../Context/AuthContext";
 import "./TaskPage.css";
 
-function TaskPage() {
- const { handleLogout, userName, userEmail } = useAuth();
+function TaskPage({ onOpenNotes }) {
+const { handleLogout, userName, userEmail } = useAuth();
 
 const storageKey = userEmail
   ? `tasks_${userEmail}`
@@ -91,6 +91,14 @@ const storageKey = userEmail
         </button>
       </header>
 
+       <button
+        className="Notes-button"
+        type="button"
+        onClick={onOpenNotes}
+      >
+        Notes
+      </button>
+      
       <form className="task-form" onSubmit={addTask}>
         <input
           type="text"

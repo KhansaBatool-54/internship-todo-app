@@ -33,6 +33,28 @@
   color: #333436;
 }
 
+.task-header button {
+  background: #142b4a;
+  color: white;
+  padding: 10px 16px;
+  border: 2px solid #444547;
+  font-weight: 600;
+  min-width: 100px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.Notes-button {
+  background: #142b4a;
+  color: white;
+  padding: 10px 16px;
+  border: 2px solid #444547;
+  font-weight: 600;
+  min-width: 100px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
 .submit-button,
 .task-card button {
   padding: 10px 16px;
