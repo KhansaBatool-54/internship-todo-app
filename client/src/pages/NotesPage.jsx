@@ -1,11 +1,16 @@
-
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { useAuth } from "../Context/AuthContext";
 import "./NotesPage.css";
 
 const API_URL = "https://jsonplaceholder.typicode.com/posts";
-const STORAGE_KEY = "notesApiLabNotes";
 
 function NotesPage({ onBack }) {
+  // Get userEmail dynamically from Auth Context
+  const { userEmail } = useAuth();
+  
+  // Create a unique storage key for each user based on their email
+  const STORAGE_KEY = `notesApiLabNotes_${userEmail || "guest"}`;
+
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -15,59 +20,54 @@ function NotesPage({ onBack }) {
   const [description, setDescription] = useState("");
   const [openMenuId, setOpenMenuId] = useState(null);
   const [loaded, setLoaded] = useState(false);
+  
+  const renderCount = useRef(0);
+  console.log(`Render #${++renderCount.current} triggered for user: ${userEmail}`);
 
+  // Fetch initial notes specific to this user's email storage
   useEffect(() => {
     async function fetchNotes() {
       try {
-        const response = await fetch(API_URL);
-
-        if (!response.ok) {
-          throw new Error("Could not fetch notes. Please try again.");
-        }
-
-        const data = await response.json();
         const savedNotes = localStorage.getItem(STORAGE_KEY);
 
+        // If this specific user already has notes saved locally, load them
         if (savedNotes !== null) {
           setNotes(JSON.parse(savedNotes));
         } else {
-          setNotes(
-            data.slice(0, 10).map((note) => ({
-              id: `api-${note.id}`,
-              title: note.title,
-              body: note.body,
-            }))
-          );
+          // Otherwise, fetch fresh dummy notes from API for a new user
+          const response = await fetch(API_URL);
+          if (!response.ok) {
+            throw new Error("Could not fetch notes. Please try again.");
+          }
+          const data = await response.json();
+          
+          const initialNotes = data.slice(0, 9).map((note) => ({
+            id: note.id,
+            title: note.title,
+            body: note.body,
+          }));
+
+          setNotes(initialNotes);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(initialNotes));
         }
       } catch (err) {
         setError(err.message || "Something went wrong.");
-
-        // Restore saved notes even if the API is unavailable.
-        try {
-          const savedNotes = localStorage.getItem(STORAGE_KEY);
-          if (savedNotes !== null) {
-            setNotes(JSON.parse(savedNotes));
-            setError("");
-          }
-        } catch {
-          setError("Could not load saved notes.");
-        }
       } finally {
         setLoading(false);
         setLoaded(true);
       }
     }
-
     fetchNotes();
-  }, []);
+  }, [STORAGE_KEY]);
 
-  // Save notes only after the initial load has finished.
+  // Save notes to user-specific LocalStorage whenever notes change
   useEffect(() => {
     if (loaded) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
     }
-  }, [notes, loaded]);
+  }, [notes, loaded, STORAGE_KEY]);
 
+  // Open form to add a new note
   function openAddForm() {
     setEditingId(null);
     setTitle("");
@@ -76,6 +76,7 @@ function NotesPage({ onBack }) {
     setIsFormOpen(true);
   }
 
+  // Open form to edit an existing note
   function openEditForm(note) {
     setEditingId(note.id);
     setTitle(note.title);
@@ -84,52 +85,127 @@ function NotesPage({ onBack }) {
     setIsFormOpen(true);
   }
 
-  function handleSave(event) {
+  // Handle saving (Create or Update note using PATCH)
+  async function handleSave(event) {
     event.preventDefault();
 
     const cleanTitle = title.trim();
     const cleanDescription = description.trim();
 
-    if (!cleanTitle || !cleanDescription) {
-      return;
+    if (!cleanTitle || !cleanDescription) return;
+
+    const isEditing = editingId !== null;
+
+    const noteData = {
+      title: cleanTitle,
+      body: cleanDescription,
+    };
+
+    try {
+      let savedNote;
+
+      if (isEditing) {
+        const existingNote = notes.find((note) => note.id === editingId);
+        const isLocalNote = String(editingId).startsWith("local-");
+
+        if (!isLocalNote) {
+          try {
+            // Using PATCH method to update only modified fields on server
+            const response = await fetch(`${API_URL}/${editingId}`, {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(noteData),
+            });
+
+            if (!response.ok) {
+              console.warn("API returned error on PATCH, continuing locally.");
+            }
+          } catch (apiErr) {
+            console.warn("Network error during PATCH, updating locally.", apiErr);
+          }
+        }
+
+        // Update local state for both server and local notes
+        savedNote = { ...existingNote, ...noteData };
+
+        setNotes((currentNotes) =>
+          currentNotes.map((note) =>
+            note.id === editingId ? savedNote : note
+          )
+        );
+      } else {
+        // Send POST request to create a new note on the server
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(noteData),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to create note.");
+        }
+
+        const data = await response.json();
+
+        savedNote = {
+          id: `local-${Date.now()}`,
+          title: data.title,
+          body: data.body,
+        };
+
+        setNotes((currentNotes) => [savedNote, ...currentNotes]);
+      }
+
+      setError("");
+      setIsFormOpen(false);
+      setEditingId(null);
+      setTitle("");
+      setDescription("");
+    } catch (err) {
+      setError(err.message || "Something went wrong.");
     }
-
-    if (editingId !== null) {
-      setNotes((currentNotes) =>
-        currentNotes.map((note) =>
-          note.id === editingId
-            ? { ...note, title: cleanTitle, body: cleanDescription }
-            : note
-        )
-      );
-    } else {
-      const newNote = {
-        id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        title: cleanTitle,
-        body: cleanDescription,
-      };
-
-      setNotes((currentNotes) => [newNote, ...currentNotes]);
-    }
-
-    setIsFormOpen(false);
-    setEditingId(null);
-    setTitle("");
-    setDescription("");
   }
 
-  function handleDelete(id) {
+  // Handle deleting a note
+  async function handleDelete(id) {
     const confirmed = window.confirm(
       "Are you sure you want to delete this note?"
     );
 
     if (!confirmed) return;
 
-    setNotes((currentNotes) =>
-      currentNotes.filter((note) => note.id !== id)
-    );
+    try {
+      const isLocalNote = String(id).startsWith("local-");
 
-    setOpenMenuId(null);
+      // Send DELETE request to API only if it's a server-backed record
+      if (!isLocalNote) {
+        try {
+          const response = await fetch(`${API_URL}/${id}`, {
+            method: "DELETE",
+          });
+
+          if (!response.ok) {
+            console.warn("API returned error on delete, removing locally.");
+          }
+        } catch (apiErr) {
+          console.warn("Network error during DELETE, removing locally.", apiErr);
+        }
+      }
+
+      // Remove note from local state
+      setNotes((currentNotes) =>
+        currentNotes.filter((note) => note.id !== id)
+      );
+
+      setOpenMenuId(null);
+      setError("");
+    } catch (err) {
+      setError(err.message || "Could not delete note.");
+    }
   }
 
   return (
@@ -138,7 +214,7 @@ function NotesPage({ onBack }) {
         <header className="notes-header">
           <div>
             <h1>Notes API Lab</h1>
-            <p>Keep your thoughts organized in one place.</p>
+            <p>Logged in as: <strong>{userEmail || "Guest"}</strong></p>
           </div>
 
           <button
@@ -265,7 +341,7 @@ function NotesPage({ onBack }) {
                         </button>
 
                         <button
-                          className="note-delete-option"
+                          className="notes-delete-option"
                           type="button"
                           onClick={() => handleDelete(note.id)}
                         >

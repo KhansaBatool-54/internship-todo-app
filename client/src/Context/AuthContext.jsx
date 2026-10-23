@@ -28,6 +28,14 @@ function handleLogin(email) {
 }
 
   function handleLogout() {
+    // Loop through localStorage to remove all user-specific notes storage keys
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith("notesApiLabNotes_")) {
+        localStorage.removeItem(key);
+      }
+    });
+
+    // Clear standard auth items
     localStorage.removeItem("isLoggedIn");
     localStorage.removeItem("userEmail");
     localStorage.removeItem("userName");

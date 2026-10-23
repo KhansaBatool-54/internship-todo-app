@@ -1,9 +1,10 @@
-
+import useRenderTracker from "../hooks/useRenderTracker";
 import { useEffect, useState } from "react";
 import { useAuth } from "../Context/AuthContext";
 import "./TaskPage.css";
 
 function TaskPage({ onOpenNotes }) {
+ useRenderTracker("TaskPage", { onOpenNotes });
 const { handleLogout, userName, userEmail } = useAuth();
 
 const storageKey = userEmail

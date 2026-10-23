@@ -1,0 +1,49 @@
+import { useRef } from "react";
+
+function useRenderTracker(componentName, props = {}) {
+  const renderCount = useRef(0);
+  const prevProps = useRef(props);
+  const prevTime = useRef(Date.now());
+
+  renderCount.current += 1;
+
+  const now = Date.now();
+  const timeSinceLastRender = now - prevTime.current;
+
+  const changedProps = Object.entries(props).reduce(
+    (changes, [key, value]) => {
+      if (!Object.is(prevProps.current[key], value)) {
+        changes[key] = {
+          from: prevProps.current[key],
+          to: value,
+        };
+      }
+
+      return changes;
+    },
+    {}
+  );
+
+  console.group(
+    `[Render #${renderCount.current}] ${componentName}`
+  );
+
+  console.log("Time since last render:", `${timeSinceLastRender}ms`);
+
+  if (renderCount.current === 1) {
+    console.log("Reason: Initial render");
+  } else if (Object.keys(changedProps).length > 0) {
+    console.log("Changed props:", changedProps);
+  } else {
+    console.log(
+      "No tracked props changed. Possible causes: state, context, or parent render."
+    );
+  }
+
+  console.groupEnd();
+
+  prevProps.current = props;
+  prevTime.current = now;
+}
+
+export default useRenderTracker;
