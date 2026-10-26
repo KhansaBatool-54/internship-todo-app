@@ -4,12 +4,21 @@ import "./NotesPage.css";
 
 const API_URL = "https://jsonplaceholder.typicode.com/posts";
 
+// Note Class wrapping id, title, and body attributes with helper methods
+class Note {
+  constructor(id, title, body) {
+    this.id = id;
+    this.title = title;
+    this.body = body;
+  }
+
+  isValid() {
+    return this.title.trim() !== "" && this.body.trim() !== "";
+  }
+}
+
 function NotesPage({ onBack }) {
-  // Get userEmail dynamically from Auth Context
   const { userEmail } = useAuth();
-  
-  // Create a unique storage key for each user based on their email
-  const STORAGE_KEY = `notesApiLabNotes_${userEmail || "guest"}`;
 
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,53 +28,33 @@ function NotesPage({ onBack }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [openMenuId, setOpenMenuId] = useState(null);
-  const [loaded, setLoaded] = useState(false);
-  
+
   const renderCount = useRef(0);
   console.log(`Render #${++renderCount.current} triggered for user: ${userEmail}`);
 
-  // Fetch initial notes specific to this user's email storage
+  // Fetch initial notes from API (LocalStorage removed)
   useEffect(() => {
     async function fetchNotes() {
       try {
-        const savedNotes = localStorage.getItem(STORAGE_KEY);
-
-        // If this specific user already has notes saved locally, load them
-        if (savedNotes !== null) {
-          setNotes(JSON.parse(savedNotes));
-        } else {
-          // Otherwise, fetch fresh dummy notes from API for a new user
-          const response = await fetch(API_URL);
-          if (!response.ok) {
-            throw new Error("Could not fetch notes. Please try again.");
-          }
-          const data = await response.json();
-          
-          const initialNotes = data.slice(0, 9).map((note) => ({
-            id: note.id,
-            title: note.title,
-            body: note.body,
-          }));
-
-          setNotes(initialNotes);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(initialNotes));
+        const response = await fetch(API_URL);
+        if (!response.ok) {
+          throw new Error("Could not fetch notes. Please try again.");
         }
+        const data = await response.json();
+        
+        const initialNotes = data.slice(0, 9).map(
+          (note) => new Note(note.id, note.title, note.body)
+        );
+
+        setNotes(initialNotes);
       } catch (err) {
         setError(err.message || "Something went wrong.");
       } finally {
         setLoading(false);
-        setLoaded(true);
       }
     }
     fetchNotes();
-  }, [STORAGE_KEY]);
-
-  // Save notes to user-specific LocalStorage whenever notes change
-  useEffect(() => {
-    if (loaded) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
-    }
-  }, [notes, loaded, STORAGE_KEY]);
+  }, []);
 
   // Open form to add a new note
   function openAddForm() {
@@ -85,17 +74,18 @@ function NotesPage({ onBack }) {
     setIsFormOpen(true);
   }
 
-  // Handle saving (Create or Update note using PATCH)
+  // Handle saving (Create or Update note using PATCH/POST)
   async function handleSave(event) {
     event.preventDefault();
 
     const cleanTitle = title.trim();
     const cleanDescription = description.trim();
 
-    if (!cleanTitle || !cleanDescription) return;
+    // Use Note class method to validate
+    const tempNote = new Note(editingId, cleanTitle, cleanDescription);
+    if (!tempNote.isValid()) return;
 
     const isEditing = editingId !== null;
-
     const noteData = {
       title: cleanTitle,
       body: cleanDescription,
@@ -110,7 +100,6 @@ function NotesPage({ onBack }) {
 
         if (!isLocalNote) {
           try {
-            // Using PATCH method to update only modified fields on server
             const response = await fetch(`${API_URL}/${editingId}`, {
               method: "PATCH",
               headers: {
@@ -127,8 +116,8 @@ function NotesPage({ onBack }) {
           }
         }
 
-        // Update local state for both server and local notes
-        savedNote = { ...existingNote, ...noteData };
+        // Create updated Note instance
+        savedNote = new Note(existingNote.id, cleanTitle, cleanDescription);
 
         setNotes((currentNotes) =>
           currentNotes.map((note) =>
@@ -136,7 +125,6 @@ function NotesPage({ onBack }) {
           )
         );
       } else {
-        // Send POST request to create a new note on the server
         const response = await fetch(API_URL, {
           method: "POST",
           headers: {
@@ -151,11 +139,8 @@ function NotesPage({ onBack }) {
 
         const data = await response.json();
 
-        savedNote = {
-          id: `local-${Date.now()}`,
-          title: data.title,
-          body: data.body,
-        };
+        // Create new Note instance for local state
+        savedNote = new Note(`local-${Date.now()}`, data.title, data.body);
 
         setNotes((currentNotes) => [savedNote, ...currentNotes]);
       }
@@ -181,7 +166,6 @@ function NotesPage({ onBack }) {
     try {
       const isLocalNote = String(id).startsWith("local-");
 
-      // Send DELETE request to API only if it's a server-backed record
       if (!isLocalNote) {
         try {
           const response = await fetch(`${API_URL}/${id}`, {
@@ -196,7 +180,6 @@ function NotesPage({ onBack }) {
         }
       }
 
-      // Remove note from local state
       setNotes((currentNotes) =>
         currentNotes.filter((note) => note.id !== id)
       );
