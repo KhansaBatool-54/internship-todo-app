@@ -3,47 +3,98 @@ import { createContext, useContext, useState } from "react";
 
 const AuthContext = createContext();
 
-export function AuthProvider({ children }) {
+const API_URL = "http://localhost:5000/api/auth";
 
+export function AuthProvider({ children }) {
   const [isLoggedIn, setIsLoggedIn] = useState(
-  () => localStorage.getItem("isLoggedIn") === "true"
-);
+    () => localStorage.getItem("isLoggedIn") === "true"
+  );
 
   const [userEmail, setUserEmail] = useState(
-  () => localStorage.getItem("userEmail") || ""
-);
+    () => localStorage.getItem("userEmail") || ""
+  );
 
   const [userName, setUserNameState] = useState(
     () => localStorage.getItem("userName") || ""
   );
 
-function handleLogin(email) {
-  const Email = email.trim().toLowerCase();
+  // SIGNUP
+  async function handleSignup(name, email, password) {
+    try {
+      const response = await fetch(`${API_URL}/signup`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+        }),
+      });
 
-  localStorage.setItem("isLoggedIn", "true");
-  localStorage.setItem("userEmail", Email);
+      const data = await response.json();
 
-  setUserEmail(Email);
-  setIsLoggedIn(true);
-}
-
-  function handleLogout() {
-    Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith("notesApiLabNotes_")) {
-        localStorage.removeItem(key);
+      if (!response.ok) {
+        throw new Error(data.message || "Signup failed");
       }
-    });
 
-    // Clear standard auth items
+      return data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // LOGIN
+  async function handleLogin(email, password) {
+    try {
+      const response = await fetch(`${API_URL}/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Login failed");
+      }
+
+      // Save authentication data
+      localStorage.setItem("isLoggedIn", "true");
+      localStorage.setItem("userEmail", data.user.email);
+      localStorage.setItem("userName", data.user.name);
+      localStorage.setItem("token", data.token);
+
+      // Update React state
+      setIsLoggedIn(true);
+      setUserEmail(data.user.email);
+      setUserNameState(data.user.name);
+
+      return data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // LOGOUT
+  function handleLogout() {
     localStorage.removeItem("isLoggedIn");
     localStorage.removeItem("userEmail");
     localStorage.removeItem("userName");
+    localStorage.removeItem("token");
 
     setIsLoggedIn(false);
     setUserEmail("");
     setUserNameState("");
   }
 
+  // Keep this temporarily for compatibility with existing components
   function setUserName(name) {
     localStorage.setItem("userName", name);
     setUserNameState(name);
@@ -52,13 +103,14 @@ function handleLogin(email) {
   return (
     <AuthContext.Provider
       value={{
-  isLoggedIn,
-  handleLogin,
-  handleLogout,
-  userName,
-  setUserName,
-  userEmail,
-}}
+        isLoggedIn,
+        handleSignup,
+        handleLogin,
+        handleLogout,
+        userName,
+        setUserName,
+        userEmail,
+      }}
     >
       {children}
     </AuthContext.Provider>

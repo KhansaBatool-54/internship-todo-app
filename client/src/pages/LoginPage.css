@@ -79,3 +79,29 @@ body {
   font: inherit;
   cursor: pointer;
 }
+
+.error-message {
+  color: #d92d20;
+  font-size: 14px;
+}
+
+.signup-link {
+  margin-top: 20px;
+  color: #667085;
+  text-align: center;
+}
+
+.signup-link button {
+  border: none;
+  background: none;
+  color: #172b4d;
+  font: inherit;
+  font-weight: bold;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.login-card button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
