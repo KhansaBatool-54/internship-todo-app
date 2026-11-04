@@ -165,6 +165,10 @@
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
+.task-buttons {
+  display: flex;
+  gap: 8px;
+}
 .task-card:hover {
   border-color: #c5d3e8;
   box-shadow: 0 4px 12px rgb(20 43 74 / 5%);

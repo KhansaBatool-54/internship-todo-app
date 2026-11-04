@@ -1,69 +1,155 @@
+
 import useRenderTracker from "../hooks/useRenderTracker";
 import { useEffect, useState } from "react";
 import { useAuth } from "../Context/AuthContext";
 import "./TaskPage.css";
 
-function TaskPage({ onOpenNotes }) {
- useRenderTracker("TaskPage", { onOpenNotes });
-const { handleLogout, userName, userEmail } = useAuth();
+const API_URL = "http://localhost:5000/api/tasks";
 
-const storageKey = userEmail
-  ? `tasks_${userEmail}`
-  : null;
+function TaskPage({ onOpenNotes }) {
+  useRenderTracker("TaskPage", { onOpenNotes });
+
+  const { handleLogout, userName } = useAuth();
 
   const [title, setTitle] = useState("");
   const [tasks, setTasks] = useState([]);
-  const [loadedKey, setLoadedKey] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
+  // FETCH TASKS
   useEffect(() => {
-    if (!storageKey) {
-      setTasks([]);
-      setLoadedKey(null);
-      return;
+    async function fetchTasks() {
+      try {
+        const token = localStorage.getItem("token");
+
+        const response = await fetch(API_URL, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to fetch tasks");
+        }
+
+        setTasks(
+          data.tasks.map((task) => ({
+            ...task,
+            status: task.status || "todo",
+          }))
+        );
+      } catch (error) {
+        setError(error.message);
+      } finally {
+        setLoading(false);
+      }
     }
 
-    try {
-      const savedTasks = localStorage.getItem(storageKey);
-      setTasks(savedTasks ? JSON.parse(savedTasks) : []);
-    } catch {
-      setTasks([]);
-    }
+    fetchTasks();
+  }, []);
 
-    setLoadedKey(storageKey);
-  }, [storageKey]);
-
-  // Save tasks only after the correct user's tasks are loaded.
-  useEffect(() => {
-    if (!storageKey || loadedKey !== storageKey) {
-      return;
-    }
-
-    localStorage.setItem(storageKey, JSON.stringify(tasks));
-  }, [tasks, storageKey, loadedKey]);
-
-  function addTask(event) {
+  // ADD TASK
+  async function addTask(event) {
     event.preventDefault();
 
     if (!title.trim()) return;
 
-    const newTask = {
-      id: Date.now(),
-      title: title.trim(),
-      status: "todo",
-    };
+    try {
+      setError("");
 
-    setTasks((previousTasks) => [...previousTasks, newTask]);
-    setTitle("");
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          title: title.trim(),
+          description: "",
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to create task");
+      }
+
+      setTasks((previousTasks) => [
+        ...previousTasks,
+        data.task,
+      ]);
+
+      setTitle("");
+    } catch (error) {
+      setError(error.message);
+    }
   }
 
-  function markAsDone(id) {
-    setTasks((previousTasks) =>
-      previousTasks.map((task) =>
-        task.id === id
-          ? { ...task, status: "done" }
-          : task
-      )
-    );
+  // MARK TASK AS DONE
+  async function markAsDone(id) {
+    try {
+      setError("");
+
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(`${API_URL}/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          status: "done",
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to update task");
+      }
+
+      setTasks((previousTasks) =>
+        previousTasks.map((task) =>
+          task._id === id ? data.task : task
+        )
+      );
+    } catch (error) {
+      setError(error.message);
+    }
+  }
+
+  // DELETE TASK
+  async function deleteTask(id) {
+    try {
+      setError("");
+
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(`${API_URL}/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to delete task");
+      }
+
+      setTasks((previousTasks) =>
+        previousTasks.filter((task) => task._id !== id)
+      );
+    } catch (error) {
+      setError(error.message);
+    }
   }
 
   const todoTasks = tasks.filter(
@@ -92,14 +178,14 @@ const storageKey = userEmail
         </button>
       </header>
 
-       <button
+      <button
         className="Notes-button"
         type="button"
         onClick={onOpenNotes}
       >
         Notes
       </button>
-      
+
       <form className="task-form" onSubmit={addTask}>
         <input
           type="text"
@@ -114,25 +200,41 @@ const storageKey = userEmail
         </button>
       </form>
 
+      {error && <p className="error-message">{error}</p>}
+
       <section className="board">
         <div className="task-column">
           <h2>To Do ({todoTasks.length})</h2>
 
-          {todoTasks.map((task) => (
-            <div className="task-card" key={task.id}>
-              <span>{task.title}</span>
+          {loading ? (
+            <p>Loading tasks...</p>
+          ) : (
+            <>
+              {todoTasks.map((task) => (
+                <div className="task-card" key={task._id}>
+                  <span>{task.title}</span>
+                  <div className="task-buttons">
+                  <button
+                    type="button"
+                    onClick={() => markAsDone(task._id)}
+                  >
+                    Done
+                  </button>
 
-              <button
-                type="button"
-                onClick={() => markAsDone(task.id)}
-              >
-                Done
-              </button>
-            </div>
-          ))}
+                  <button
+                    type="button"
+                    onClick={() => deleteTask(task._id)}
+                  >
+                    Delete
+                  </button>
+                  </div>
+                </div>
+              ))}
 
-          {todoTasks.length === 0 && (
-            <p>No pending tasks.</p>
+              {todoTasks.length === 0 && (
+                <p>No pending tasks.</p>
+              )}
+            </>
           )}
         </div>
 
@@ -140,11 +242,19 @@ const storageKey = userEmail
           <h2>Done ({doneTasks.length})</h2>
 
           {doneTasks.map((task) => (
-            <div className="task-card" key={task.id}>
+            <div className="task-card" key={task._id}>
               <span>{task.title}</span>
+
               <span className="completed-label">
                 Completed ✓
               </span>
+
+              <button
+                type="button"
+                onClick={() => deleteTask(task._id)}
+              >
+                Delete
+              </button>
             </div>
           ))}
 

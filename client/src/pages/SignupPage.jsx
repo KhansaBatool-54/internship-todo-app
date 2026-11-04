@@ -92,6 +92,7 @@ function SignupPage({ onSignup, onGoToLogin }) {
               minLength={8}
               required
             />
+            
           </div>
 
           {error && <p className="error-message">{error}</p>}
