@@ -125,32 +125,37 @@ function TaskPage({ onOpenNotes }) {
   }
 
   // DELETE TASK
-  async function deleteTask(id) {
-    try {
-      setError("");
 
-      const token = localStorage.getItem("token");
+async function deleteTask(id) {
+  try {
+    setError("");
 
-      const response = await fetch(`${API_URL}/${id}`, {
-        method: "DELETE",
+    const token = localStorage.getItem("token");
+
+    const response = await fetch(
+      `${API_URL}/${id}/soft-delete`,
+      {
+        method: "PATCH",
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to delete task");
       }
+    );
 
-      setTasks((previousTasks) =>
-        previousTasks.filter((task) => task._id !== id)
-      );
-    } catch (error) {
-      setError(error.message);
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to delete task");
     }
+
+    setTasks((previousTasks) =>
+      previousTasks.filter((task) => task._id !== id)
+    );
+  } catch (error) {
+    setError(error.message);
   }
+}
+
 
   const todoTasks = tasks.filter(
     (task) => task.status === "todo"

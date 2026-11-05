@@ -57,14 +57,22 @@ router.get("/", authMiddleware, async (req, res) => {
   }
 });
 
-
-// DELETE TASK PERMANENTLY
-router.delete("/:id", authMiddleware, async (req, res) => {
+ // SOFT DELETE TASK
+router.patch("/:id/soft-delete", authMiddleware, async (req, res) => {
   try {
-    const deletedTask = await Task.findOneAndDelete({
-      _id: req.params.id,
-      userId: req.user.userId,
-    });
+    const deletedTask = await Task.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        userId: req.user.userId,
+        deletedAt: null,
+      },
+      {
+        deletedAt: new Date(),
+      },
+      {
+        new: true,
+      }
+    );
 
     if (!deletedTask) {
       return res.status(404).json({
@@ -73,10 +81,11 @@ router.delete("/:id", authMiddleware, async (req, res) => {
     }
 
     return res.status(200).json({
-      message: "Task deleted permanently",
+      message: "Task soft deleted successfully",
+      task: deletedTask,
     });
   } catch (error) {
-    console.error("Delete task error:", error.message);
+    console.error("Soft delete task error:", error.message);
 
     return res.status(500).json({
       message: "Server error while deleting task",
