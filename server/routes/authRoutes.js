@@ -12,7 +12,7 @@ router.post("/signup", async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    if (!name?.trim() || !email?.trim() || !password) {
+    if (!name?.trim() || !email?.trim() || !email.includes("@") || !email.includes(".") || !password) {
       return res.status(400).json({
         message: "Name, email and password are required",
       });
@@ -44,8 +44,15 @@ router.post("/signup", async (req, res) => {
       password: hashedPassword,
     });
 
+    const token = jwt.sign(
+      { userId: newUser._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+    
     return res.status(201).json({
       message: "User registered successfully",
+      token: token,
       user: {
         id: newUser._id,
         name: newUser.name,
@@ -107,7 +114,7 @@ const token = jwt.sign(
   },
   process.env.JWT_SECRET,
   {
-    expiresIn: "1h",
+    expiresIn: "1d",
   }
 );
 
@@ -132,7 +139,7 @@ return res.status(200).json({
 // PROTECTED PROFILE
 router.get("/profile", authMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId).select("-password");
+    const user = await User.findById(req.user.userId).select("-password");  
 
     if (!user) {
       return res.status(404).json({
@@ -142,18 +149,60 @@ router.get("/profile", authMiddleware, async (req, res) => {
 
     return res.status(200).json({
       message: "Profile fetched successfully",
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-      },
+      user,
     });
   } catch (error) {
-    console.error("Profile error:", error.message);
+    console.error("Fetch profile error:", error.message);
+
     return res.status(500).json({
       message: "Server error while fetching profile",
     });
   }
 });
+
+router.patch("/profile", authMiddleware, async (req, res) => {
+  try {
+    const { name } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({
+        message: "Name cannot be empty",
+      });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.userId,
+      {
+        name: name.trim(),
+      },
+      {
+        new: true,
+        runValidators: true,
+      }
+    ).select("-password");
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    return res.status(200).json({
+      message: "Profile updated successfully",
+      user: {
+        id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+      },
+    });
+  } catch (error) {
+    console.error("Update profile error:", error.message);
+
+    return res.status(500).json({
+      message: "Server error while updating profile",
+    });
+  }
+});
+
 
 export default router;

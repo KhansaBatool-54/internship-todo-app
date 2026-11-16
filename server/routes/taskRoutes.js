@@ -37,16 +37,48 @@ router.post("/", authMiddleware, async (req, res) => {
 
 
 // GET ALL TASKS
+
+// GET TASKS WITH PAGINATION
 router.get("/", authMiddleware, async (req, res) => {
   try {
-    const tasks = await Task.find({
+    // Read page and limit from query parameters
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+
+    // Limit records per page (maximum 100)
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(req.query.limit) || 5)
+    );
+    const skip = (page - 1) * limit;
+    
+    const filter = {
       userId: req.user.userId,
       deletedAt: null,
-    }).sort({ createdAt: -1 });
+    };
+
+    // Fetch the requested page
+    const tasks = await Task.find(filter)
+      .sort({ createdAt: -1, _id: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    // Count all matching active tasks
+    const totalTasks = await Task.countDocuments(filter);
+
+    // Calculate total number of pages
+    const totalPages = Math.ceil(totalTasks / limit);
 
     return res.status(200).json({
       message: "Tasks fetched successfully",
       tasks,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalTasks,
+        limit,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
     });
   } catch (error) {
     console.error("Get tasks error:", error.message);
@@ -98,6 +130,18 @@ router.patch("/:id", authMiddleware, async (req, res) => {
   try {
     const { status } = req.body;
 
+    if (!status) {
+      return res.status(400).json({
+        message: "Status is required",
+      });
+    }
+
+    // if(status === "done") {
+    //   return res.status(400).json({
+    //     message: "Already marked as done",
+    //   });
+    // }
+    
     if (!["todo", "done"].includes(status)) {
       return res.status(400).json({
         message: "Invalid task status",

@@ -39,6 +39,15 @@ export function AuthProvider({ children }) {
         throw new Error(data.message || "Signup failed");
       }
 
+      localStorage.setItem("isLoggedIn", "true");
+      localStorage.setItem("userEmail", data.user.email);
+      localStorage.setItem("userName", data.user.name);
+      localStorage.setItem("token", data.token);
+
+      setIsLoggedIn(true);
+      setUserEmail(data.user.email);
+      setUserNameState(data.user.name);
+
       return data;
     } catch (error) {
       throw error;

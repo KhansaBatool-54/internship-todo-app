@@ -6,8 +6,8 @@ import "./TaskPage.css";
 
 const API_URL = "http://localhost:5000/api/tasks";
 
-function TaskPage({ onOpenNotes }) {
-  useRenderTracker("TaskPage", { onOpenNotes });
+function TaskPage({ onOpenNotes, onOpenProfile }) {
+  useRenderTracker("TaskPage", { onOpenNotes, onOpenProfile });
 
   const { handleLogout, userName } = useAuth();
 
@@ -15,40 +15,53 @@ function TaskPage({ onOpenNotes }) {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  // FETCH TASKS
-  useEffect(() => {
-    async function fetchTasks() {
-      try {
-        const token = localStorage.getItem("token");
+  const LIMIT = 5;
+  
+// FETCH TASKS
+useEffect(() => {
+  async function fetchTasks() {
+    try {
+      setLoading(true);
+      setError("");
 
-        const response = await fetch(API_URL, {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(
+        `${API_URL}?page=${currentPage}&limit=${LIMIT}`,
+        {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.message || "Failed to fetch tasks");
         }
+      );
 
-        setTasks(
-          data.tasks.map((task) => ({
-            ...task,
-            status: task.status || "todo",
-          }))
-        );
-      } catch (error) {
-        setError(error.message);
-      } finally {
-        setLoading(false);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to fetch tasks");
       }
-    }
 
-    fetchTasks();
-  }, []);
+      setTasks(
+        data.tasks.map((task) => ({
+          ...task,
+          status: task.status || "todo",
+        }))
+      );
+
+      setPagination(data.pagination);
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  fetchTasks();
+}, [currentPage, refreshKey]);
 
   // ADD TASK
   async function addTask(event) {
@@ -79,12 +92,9 @@ function TaskPage({ onOpenNotes }) {
         throw new Error(data.message || "Failed to create task");
       }
 
-      setTasks((previousTasks) => [
-        ...previousTasks,
-        data.task,
-      ]);
-
-      setTitle("");
+  setTitle("");
+  setCurrentPage(1);
+  setRefreshKey((previous) => previous + 1);
     } catch (error) {
       setError(error.message);
     }
@@ -125,7 +135,6 @@ function TaskPage({ onOpenNotes }) {
   }
 
   // DELETE TASK
-
 async function deleteTask(id) {
   try {
     setError("");
@@ -148,9 +157,19 @@ async function deleteTask(id) {
       throw new Error(data.message || "Failed to delete task");
     }
 
-    setTasks((previousTasks) =>
-      previousTasks.filter((task) => task._id !== id)
-    );
+    const newTotalTasks = pagination.totalTasks - 1;
+
+      const newTotalPages = Math.ceil(
+        newTotalTasks / LIMIT
+      );
+
+      setCurrentPage((previousPage) =>
+        previousPage > newTotalPages
+          ? Math.max(1, newTotalPages)
+          : previousPage
+      );
+
+      setRefreshKey((previous) => previous + 1);
   } catch (error) {
     setError(error.message);
   }
@@ -174,6 +193,7 @@ async function deleteTask(id) {
           <p>Welcome, {userName || "Guest"}!</p>
         </div>
 
+        <div className="header-buttons">
         <button
           className="logout-button"
           type="button"
@@ -181,6 +201,15 @@ async function deleteTask(id) {
         >
           Logout
         </button>
+
+        <button
+          className="profile-button"
+          type="button"
+          onClick={onOpenProfile}
+        >
+          Profile
+        </button> 
+        </div>       
       </header>
 
       <button
@@ -267,6 +296,35 @@ async function deleteTask(id) {
             <p>No completed tasks yet.</p>
           )}
         </div>
+
+
+        {/* PAGINATION */}
+        {!loading && pagination && pagination.totalTasks > 0 && (
+          <div className="pagination">
+
+            <button
+              type="button"
+              disabled={!pagination.hasPreviousPage}
+              onClick={() => setCurrentPage((page) => page - 1)}
+            >
+              Previous
+            </button>
+
+            <span>
+              Page {pagination.currentPage} of {pagination.totalPages}
+            </span>
+
+            <button
+              type="button"
+              disabled={!pagination.hasNextPage}
+              onClick={() => setCurrentPage((page) => page + 1)}
+            >
+              Next
+            </button>
+
+          </div>
+        )}
+
       </section>
     </main>
   );

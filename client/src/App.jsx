@@ -6,6 +6,7 @@ import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import TaskPage from "./pages/TaskPage";
 import NotesPage from "./pages/NotesPage";
+import ProfilePage from "./pages/ProfilePage";
 
 function App() {
   const {
@@ -43,14 +44,19 @@ function App() {
   return (
     <main>
       {currentPage === "tasks" ? (
-        <TaskPage
-          onOpenNotes={() => setCurrentPage("notes")}
-        />
-      ) : (
-        <NotesPage
-          onBack={() => setCurrentPage("tasks")}
-        />
-      )}
+          <TaskPage
+            onOpenNotes={() => setCurrentPage("notes")}
+            onOpenProfile={() => setCurrentPage("profile")}
+          />
+        ) : currentPage === "notes" ? (
+          <NotesPage
+            onBack={() => setCurrentPage("tasks")}
+          />
+        ) : (
+          <ProfilePage
+            onBack={() => setCurrentPage("tasks")}
+          />
+        )}
     </main>
   );
 }
