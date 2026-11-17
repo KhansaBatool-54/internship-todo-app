@@ -1,5 +1,6 @@
 
 import express from "express";
+import mongoose from "mongoose";
 import Task from "../models/Task.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 
@@ -36,36 +37,70 @@ router.post("/", authMiddleware, async (req, res) => {
 });
 
 
-// GET ALL TASKS
-
-// GET TASKS WITH PAGINATION
+// GET TASKS WITH FILTERING, SORTING AND PAGINATION
 router.get("/", authMiddleware, async (req, res) => {
   try {
-    // Read page and limit from query parameters
+    // 1. Pagination
     const page = Math.max(1, parseInt(req.query.page) || 1);
 
-    // Limit records per page (maximum 100)
     const limit = Math.min(
       100,
       Math.max(1, parseInt(req.query.limit) || 5)
     );
+
     const skip = (page - 1) * limit;
-    
+
+    // 2. Base filter
     const filter = {
       userId: req.user.userId,
       deletedAt: null,
     };
 
-    // Fetch the requested page
+    // 3. Status filtering
+    const { status } = req.query;
+
+    if (status && !["todo", "done", "all", "null"].includes(status)) {
+      return res.status(400).json({
+        message: "Invalid status filter",
+      });
+    }
+
+    if (status === "todo" || status === "done") {
+      filter.status = status;
+    }
+
+    // 4. Sorting selection
+    const sortBy = req.query.sortBy || "title";
+
+if (!["title", "createdAt", "title-desc", "createdAt(latest first)"].includes(sortBy)) {
+  return res.status(400).json({
+    message: "Invalid sorting option",
+  });
+}
+
+// 5. Sorting order
+let sortOptions;
+
+if (sortBy === "title") {
+  sortOptions = { title: 1, _id: 1 }; // A to Z
+} else if (sortBy === "title-desc") {
+  sortOptions = { title: -1, _id: -1 }; // Z to A
+} else if (sortBy === "createdAt(latest first)") {
+  sortOptions = { createdAt: -1, _id: -1 }; 
+} else {
+  sortOptions = { createdAt: 1, _id: 1 };
+}
+
+    // 6. Fetch tasks
     const tasks = await Task.find(filter)
-      .sort({ createdAt: -1, _id: -1 })
+      .sort(sortOptions)
       .skip(skip)
       .limit(limit);
 
-    // Count all matching active tasks
+    // 7. Count matching tasks
     const totalTasks = await Task.countDocuments(filter);
 
-    // Calculate total number of pages
+    // 8. Pagination information
     const totalPages = Math.ceil(totalTasks / limit);
 
     return res.status(200).json({
@@ -85,6 +120,55 @@ router.get("/", authMiddleware, async (req, res) => {
 
     return res.status(500).json({
       message: "Server error while fetching tasks",
+    });
+  }
+});
+
+
+// BULK SOFT DELETE TASKS
+router.patch("/bulk/soft-delete", authMiddleware, async (req, res) => {
+  try {
+    const { ids } = req.body;
+
+    // Validate IDs array
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({
+        message: "Please provide task IDs to delete",
+      });
+    }
+
+    // Validate individual IDs
+    const validIds = ids.every((id) =>
+      mongoose.Types.ObjectId.isValid(id)
+    );
+
+    if (!validIds) {
+      return res.status(400).json({
+        message: "One or more task IDs are invalid",
+      });
+    }
+
+    // Soft delete selected tasks belonging to the logged-in user
+    const result = await Task.updateMany(
+      {
+        _id: { $in: ids },
+        userId: req.user.userId,
+        deletedAt: null,
+      },
+      {
+        $set: { deletedAt: new Date() },
+      }
+    );
+
+    return res.status(200).json({
+      message: "Selected tasks deleted successfully",
+      deletedCount: result.modifiedCount,
+    });
+  } catch (error) {
+    console.error("Bulk delete error:", error.message);
+
+    return res.status(500).json({
+      message: "Server error while deleting selected tasks",
     });
   }
 });

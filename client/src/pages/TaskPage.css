@@ -268,6 +268,13 @@
   }
 }
 
+.status-complete {
+  color: #083121;
+  font-weight: 700;
+  font-size: 10px;
+  font-family: Arial;
+  font-style: italic;
+}
 @media (max-width: 600px) {
   .task-page {
     padding: 22px 16px;
@@ -307,4 +314,102 @@
     padding: 14px;
     gap: 10px;
   }
+}
+
+
+/* TASK TABLE */
+
+.task-table-section {
+  width: 100%;
+  margin-top: 25px;
+}
+
+.table-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.table-controls select,
+.task-status-select {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background: white;
+}
+
+.delete-selected-button {
+  padding: 9px 15px;
+  border: none;
+  border-radius: 5px;
+  background: #b42318;
+  color: white;
+  cursor: pointer;
+}
+
+.delete-selected-button:disabled {
+  background: #aaa;
+  cursor: not-allowed;
+}
+
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.task-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+}
+
+.task-table th,
+.task-table td {
+  padding: 13px 15px;
+  border-bottom: 1px solid #ddd;
+  text-align: left;
+}
+
+.task-table th {
+  background: #f2f3f5;
+  font-weight: 600;
+}
+
+.task-table input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.task-status-select {
+  cursor: pointer;
+}
+
+.empty-table {
+  text-align: center !important;
+  padding: 25px !important;
+  color: #777;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  margin-top: 22px;
+}
+
+.pagination button {
+  padding: 8px 15px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
