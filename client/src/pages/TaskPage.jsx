@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../Context/AuthContext";
 import "./TaskPage.css";
 
-const API_URL = "http://localhost:5000/api/tasks";
+const API_URL = `${import.meta.env.VITE_API_URL}/tasks`;
 const LIMIT = 5;
 
 function TaskPage({ onOpenNotes, onOpenProfile }) {

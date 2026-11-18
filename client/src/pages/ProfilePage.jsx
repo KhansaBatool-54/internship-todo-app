@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../Context/AuthContext";
 import "./ProfilePage.css";
 
-const API_URL = "http://localhost:5000/api/auth/profile";
+const API_URL = `${import.meta.env.VITE_API_URL}/auth/profile`;
 
 function ProfilePage({ onBack }) {
   const { userName, userEmail, setUserName } = useAuth();
